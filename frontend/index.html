@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeRoute AI | Intelligent Navigation</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- UI Overlay -->
+    <div class="ui-container">
+        <!-- Header -->
+        <header class="header neon-border">
+            <div class="logo">
+                <i class="fas fa-shield-halved"></i>
+                <span>SAFEROUTE AI</span>
+            </div>
+            <div id="status-badge" class="status-badge">READY TO NAVIGATE</div>
+        </header>
+
+        <!-- Dynamic Controls -->
+        <div class="controls-panel glassmorphism">
+            <div class="instruction" id="instruction">
+                Click on the map to select <strong>START</strong> point
+            </div>
+            
+            <div class="points-summary">
+                <div class="point-item" id="start-point-info">
+                    <i class="fas fa-circle-dot start-icon"></i>
+                    <span>Start: <em id="start-coords">Not Selected</em></span>
+                </div>
+                <div class="point-item" id="end-point-info">
+                    <i class="fas fa-location-dot end-icon"></i>
+                    <span>End: <em id="end-coords">Not Selected</em></span>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="find-route-btn" class="btn btn-primary" disabled>
+                    <i class="fas fa-microchip"></i>
+                    <span>Calculate Intelligent Path</span>
+                </button>
+                <button id="reset-btn" class="btn btn-secondary">
+                    <i class="fas fa-undo"></i>
+                    <span>Clear Map</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Card (Hidden Initially) -->
+        <div id="result-card" class="result-card glassmorphism hidden">
+            <h3>Route Intelligence</h3>
+            
+            <!-- Safe Route Metrics -->
+            <div class="route-details active" id="safe-details">
+                <div class="route-header">
+                    <i class="fas fa-shield-check" style="color: var(--accent-blue);"></i>
+                    <span>SAFE PATH</span>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <span class="m-label">DISTANCE</span>
+                        <span id="safe-distance" class="m-value">0.0 km</span>
+                    </div>
+                    <div class="metric">
+                        <span class="m-label">RISK FACTOR</span>
+                        <span id="safe-risk" class="m-value">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Metric (vs Shortest) -->
+            <div class="comparison-info" id="comparison-info">
+                <i class="fas fa-circle-info"></i>
+                <span>Safety optimization has reduced risk by <strong id="risk-reduction">0%</strong> compared to the shortest path.</span>
+            </div>
+
+            <div id="safety-level" class="safety-level">SAFE</div>
+            <p class="summary-text">AI is prioritizing well-lit, high-occupancy streets to ensure maximum safety during transit.</p>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loader" class="loader hidden">
+        <div class="spinner"></div>
+        <span>PROCESSING MULTI-AGENT ROUTING...</span>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

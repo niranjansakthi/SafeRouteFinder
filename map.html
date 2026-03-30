@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Safe Route Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    var map = L.map('map').setView([11.0, 78.6], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    map.on('click', async function(e) {
+        var lat = e.latlng.lat;
+        var lon = e.latlng.lng;
+
+        console.log("Clicked:", lat, lon);
+
+        // sample inputs (we improve later)
+        const hour = new Date().getHours();
+        const data = {
+           time: hour,
+
+           lighting: hour > 18 ? 0.3 : 0.8,
+           crowd: Math.random(),
+
+           crime: (lat + lon) % 1,
+
+           weather: Math.random()
+};
+
+        try {
+            const response = await fetch("http://127.0.0.1:8000/predict-risk", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            const risk = result.risk_score.toFixed(2);
+            const status = result.status;
+
+            // color based on risk
+            let color = "green";
+            if (risk > 0.7) color = "red";
+            else if (risk > 0.4) color = "orange";
+
+            // add marker
+            L.circleMarker([lat, lon], {
+                radius: 8,
+                color: color
+            }).addTo(map)
+              .bindPopup(
+                `<b>Risk:</b> ${risk} <br><b>Status:</b> ${status}`
+              )
+              .openPopup();
+
+        } catch (err) {
+            console.error(err);
+            alert("API error");
+        }
+    });
+</script>
+
+</body>
+</html>
