@@ -1,5 +1,6 @@
 # services/route_service.py
 
+import os
 import osmnx as ox
 import networkx as nx
 from services.risk_service import get_node_risk
@@ -9,20 +10,29 @@ import math
 # Load city graph (RUN ONCE)
 # -----------------------------
 PLACE = "Tiruchirappalli, Tamil Nadu, India"
+GRAPH_FILE = "trichy_graph.graphml"
 
-print("Loading road network for:", PLACE)
-try:
-    G = ox.graph_from_place(PLACE, network_type='walk')
-except Exception as e:
-    print(f"Error loading graph for {PLACE}: {e}. Falling back to point 2km...")
-    G = ox.graph_from_point((10.7905, 78.7047), dist=2000, network_type='walk')
+if os.path.exists(GRAPH_FILE):
+    print("Loading graph from disk...")
+    G = ox.load_graphml(GRAPH_FILE)
+else:
+    print("Downloading road network for:", PLACE)
+    try:
+        G = ox.graph_from_place(PLACE, network_type='walk')
+        # Save for future use
+        ox.save_graphml(G, GRAPH_FILE)
+        print("Graph saved to disk for faster loading!")
+    except Exception as e:
+        print(f"Error loading graph for {PLACE}: {e}. Falling back to point 2km...")
+        G = ox.graph_from_point((10.7905, 78.7047), dist=2000, network_type='walk')
 
-# Add lengths to edges
-try:
-    G = ox.distance.add_edge_lengths(G)
-except AttributeError:
-    G = ox.add_edge_lengths(G)
-print(f"Graph loaded with {len(G.nodes)} nodes and {len(G.edges)} edges!")
+# Add lengths to edges if they don't exist
+if not any('length' in data for u, v, data in G.edges(data=True)):
+    try:
+        G = ox.distance.add_edge_lengths(G)
+    except AttributeError:
+        G = ox.add_edge_lengths(G)
+print(f"Graph ready with {len(G.nodes)} nodes and {len(G.edges)} edges!")
 
 # -----------------------------
 # Custom Heuristic (Euclidean)
