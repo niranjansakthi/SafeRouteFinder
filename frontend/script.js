@@ -71,7 +71,7 @@ async function findSafeRoute() {
     isCalculating = true;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/predict-route`, {
+        const response = await fetch(`${API_BASE_URL}/predict`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

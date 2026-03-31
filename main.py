@@ -17,7 +17,7 @@ app.add_middleware(
 def home():
     return {"message": "Sentinel AI Routing Backend Running"}
 
-@app.post("/predict-route")
+@app.post("/predict")
 def predict_route(data: RouteRequest):
     try:
         results = find_route(
