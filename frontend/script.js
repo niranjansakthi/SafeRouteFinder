@@ -53,7 +53,7 @@ function updateUI(step, lat, lng) {
     const label = step === 'start' ? 'start' : 'end';
     document.getElementById(`${label}-point-info`).classList.add('completed');
     document.getElementById(`${label}-coords`).innerText = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    
+
     const instr = document.getElementById('instruction');
     const findBtn = document.getElementById('find-route-btn');
 
@@ -85,11 +85,16 @@ async function findSafeRoute() {
             visualizeRoutes(data);
             showResults(data);
             document.getElementById('status-badge').innerText = 'SECURE PATH FOUND';
+        } else if (response.status === 422) {
+            document.getElementById('status-badge').innerText = 'NO PATH FOUND';
+            alert(`⚠️ Path Unavailable: ${data.detail || 'No walkable route exists between these points. Try selecting points closer to roads or within Tiruchirappalli.'}`);
         } else {
-            alert(`Routing Error: ${data.detail || 'Path unavailable.'}`);
+            document.getElementById('status-badge').innerText = 'ERROR';
+            alert(`Routing Error (${response.status}): ${data.detail || 'An unexpected server error occurred.'}`);
         }
     } catch (err) {
-        alert('Server unreachable. Ensure FastAPI is running.');
+        console.error('Fetch error:', err);
+        alert('🔌 Server unreachable. The backend may be starting up (cold start on Render can take ~30s). Please try again.');
     } finally {
         toggleLoader(false);
         isCalculating = false;
@@ -119,7 +124,7 @@ function visualizeRoutes(data) {
             lineCap: 'round',
             className: 'path-main'
         }).addTo(map);
-        
+
         map.fitBounds(safePolyline.getBounds(), { padding: [50, 50] });
     }
 }
@@ -131,7 +136,7 @@ function showResults(data) {
 
     document.getElementById('safe-distance').innerText = `${safe.distance_km} km`;
     document.getElementById('safe-risk').innerText = `${safe.risk_percent}%`;
-    
+
     // Safety Level UI
     const levelEl = document.getElementById('safety-level');
     levelEl.innerText = safe.safety_level;
@@ -160,12 +165,12 @@ function resetAll() {
     document.getElementById('find-route-btn').disabled = true;
     document.getElementById('result-card').classList.add('hidden');
     document.getElementById('status-badge').innerText = 'READY TO NAVIGATE';
-    
+
     if (startMarker) map.removeLayer(startMarker);
     if (endMarker) map.removeLayer(endMarker);
     if (safePolyline) map.removeLayer(safePolyline);
     if (shortPolyline) map.removeLayer(shortPolyline);
-    
+
     startMarker = null; endMarker = null; safePolyline = null; shortPolyline = null;
 }
 
