@@ -1,6 +1,6 @@
 // frontend/script.js
 
-const API_BASE_URL = 'https://safe-route-finder-git-main-niranjansakthis-projects.vercel.app';
+const API_BASE_URL = ''; // Vercel proxies /predict → Render backend via vercel.json rewrites
 const MAP_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const START_ICON_URL = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png';
 const END_ICON_URL = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png';
