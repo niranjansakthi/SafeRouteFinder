@@ -1,102 +1,327 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeRoute AI | Intelligent Navigation</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="style.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafeRoute AI — Intelligent Navigation</title>
+  <meta name="description" content="SafeRoute AI uses machine learning to find the safest walking routes in Tiruchirappalli using A* pathfinding and real-time risk analysis." />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <!-- Map Container -->
-    <div id="map"></div>
 
-    <!-- UI Overlay -->
-    <div class="ui-container">
-        <!-- Header -->
-        <header class="header neon-border">
-            <div class="logo">
-                <i class="fas fa-shield-halved"></i>
-                <span>SAFEROUTE AI</span>
-            </div>
-            <div id="status-badge" class="status-badge">READY TO NAVIGATE</div>
-        </header>
+  <!-- ═══════════════════════════════════════════
+       FULLSCREEN MAP
+  ══════════════════════════════════════════════ -->
+  <div id="map"></div>
 
-        <!-- Dynamic Controls -->
-        <div class="controls-panel glassmorphism">
-            <div class="instruction" id="instruction">
-                Click on the map to select <strong>START</strong> point
-            </div>
-            
-            <div class="points-summary">
-                <div class="point-item" id="start-point-info">
-                    <i class="fas fa-circle-dot start-icon"></i>
-                    <span>Start: <em id="start-coords">Not Selected</em></span>
-                </div>
-                <div class="point-item" id="end-point-info">
-                    <i class="fas fa-location-dot end-icon"></i>
-                    <span>End: <em id="end-coords">Not Selected</em></span>
-                </div>
-            </div>
+  <!-- ═══════════════════════════════════════════
+       LEFT SIDEBAR — Always Visible
+  ══════════════════════════════════════════════ -->
+  <aside id="sidebar-left">
 
-            <div class="button-group">
-                <button id="find-route-btn" class="btn btn-primary" disabled>
-                    <i class="fas fa-microchip"></i>
-                    <span>Calculate Intelligent Path</span>
-                </button>
-                <button id="reset-btn" class="btn btn-secondary">
-                    <i class="fas fa-undo"></i>
-                    <span>Clear Map</span>
-                </button>
-            </div>
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <div class="brand-logo">
+        <div class="logo-shield">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L4 6v6c0 5.25 3.5 10.17 8 11.5C16.5 22.17 20 17.25 20 12V6L12 2Z" fill="url(#sg)" stroke="none"/>
+            <path d="M9 12l2 2 4-4" stroke="#080c14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="sg" x1="4" y1="2" x2="20" y2="24" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00d68f"/>
+                <stop offset="1" stop-color="#667eea"/>
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
-
-        <!-- Result Card (Hidden Initially) -->
-        <div id="result-card" class="result-card glassmorphism hidden">
-            <h3>Route Intelligence</h3>
-            
-            <!-- Safe Route Metrics -->
-            <div class="route-details active" id="safe-details">
-                <div class="route-header">
-                    <i class="fas fa-shield-check" style="color: var(--accent-blue);"></i>
-                    <span>SAFE PATH</span>
-                </div>
-                <div class="metrics-grid">
-                    <div class="metric">
-                        <span class="m-label">DISTANCE</span>
-                        <span id="safe-distance" class="m-value">0.0 km</span>
-                    </div>
-                    <div class="metric">
-                        <span class="m-label">RISK FACTOR</span>
-                        <span id="safe-risk" class="m-value">0%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Comparison Metric (vs Shortest) -->
-            <div class="comparison-info" id="comparison-info">
-                <i class="fas fa-circle-info"></i>
-                <span>Safety optimization has reduced risk by <strong id="risk-reduction">0%</strong> compared to the shortest path.</span>
-            </div>
-
-            <div id="safety-level" class="safety-level">SAFE</div>
-            <p class="summary-text">AI is prioritizing well-lit, high-occupancy streets to ensure maximum safety during transit.</p>
+        <div class="brand-text">
+          <span class="brand-name">SafeRoute AI</span>
+          <span class="brand-tag">Intelligent Navigation</span>
         </div>
+      </div>
+      <div class="brand-divider"></div>
     </div>
 
-    <!-- Loading Indicator -->
-    <div id="loader" class="loader hidden">
-        <div class="spinner"></div>
-        <span>PROCESSING MULTI-AGENT ROUTING...</span>
+    <!-- Live Clock -->
+    <div class="sidebar-clock">
+      <div class="clock-time" id="clock-time">00:00:00</div>
+      <div class="clock-date" id="clock-date">Loading…</div>
+      <div class="clock-location">
+        <span class="loc-dot"></span>
+        Tiruchirappalli, TN
+      </div>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="script.js"></script>
+    <!-- How To Use -->
+    <div class="sidebar-section">
+      <div class="section-title">How to use</div>
+      <div class="steps-list">
+        <div class="step-item" id="step-1" data-step="1">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-name">Set Start Point</div>
+            <div class="step-desc">Click anywhere on the map</div>
+          </div>
+          <div class="step-check" id="check-1">✓</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item" id="step-2" data-step="2">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-name">Set Destination</div>
+            <div class="step-desc">Click a second location</div>
+          </div>
+          <div class="step-check" id="check-2">✓</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item" id="step-3" data-step="3">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-name">View Routes</div>
+            <div class="step-desc">Compare safe vs shortest path</div>
+          </div>
+          <div class="step-check" id="check-3">✓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map Legend -->
+    <div class="sidebar-section">
+      <div class="section-title">Map Legend</div>
+      <div class="legend-list">
+        <div class="legend-item">
+          <div class="legend-line safe-line"></div>
+          <span>Safest Route</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-line short-line"></div>
+          <span>Shortest Route</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-marker start-marker-icon">A</div>
+          <span>Start Point</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-marker end-marker-icon">B</div>
+          <span>End Point</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backend Status -->
+    <div class="sidebar-section sidebar-footer">
+      <div class="section-title">Backend</div>
+      <div class="backend-status">
+        <div class="backend-dot" id="backend-dot"></div>
+        <span class="backend-url" id="backend-label">Connecting…</span>
+      </div>
+      <div class="backend-endpoint">POST /predict</div>
+    </div>
+
+  </aside>
+
+  <!-- ═══════════════════════════════════════════
+       TOP INSTRUCTION BANNER
+  ══════════════════════════════════════════════ -->
+  <div id="instruction-banner" class="step-start">
+    <span class="inst-badge" id="inst-badge">Step 1</span>
+    <span id="inst-text">Click anywhere on the map to set your <strong>start point</strong></span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       RIGHT PANEL — Slides in after route calc
+  ══════════════════════════════════════════════ -->
+  <aside id="sidebar-right">
+
+    <!-- Panel Header -->
+    <div class="right-header">
+      <div class="right-header-title">Route Analysis</div>
+      <button class="btn-close-panel" id="btn-reset" title="Reset">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        Reset
+      </button>
+    </div>
+
+    <!-- Waypoints -->
+    <div class="r-card" id="r-waypoints">
+      <div class="r-card-label">Waypoints</div>
+      <div class="waypoint-row">
+        <div class="wp-marker wp-start">A</div>
+        <div class="wp-info">
+          <div class="wp-title">Start Point</div>
+          <div class="wp-coords" id="wp-start-coords">—</div>
+        </div>
+      </div>
+      <div class="wp-connector-line"></div>
+      <div class="waypoint-row">
+        <div class="wp-marker wp-end">B</div>
+        <div class="wp-info">
+          <div class="wp-title">Destination</div>
+          <div class="wp-coords" id="wp-end-coords">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison Banner -->
+    <div class="r-card" id="r-comparison">
+      <div class="r-card-label">AI Recommendation</div>
+      <div class="comparison-box" id="comparison-box">
+        <div class="comp-icon">🛡️</div>
+        <div class="comp-text" id="comp-text">Analysing routes…</div>
+      </div>
+    </div>
+
+    <!-- Safe Route Card -->
+    <div class="r-card route-card safe-card" id="r-safe">
+      <div class="route-card-header">
+        <div class="route-badge safe-badge">
+          <div class="route-color-dot safe-dot"></div>
+          Safest Route
+        </div>
+        <div class="route-tag" id="safe-tag"></div>
+      </div>
+      <div class="route-metrics">
+        <div class="metric-box">
+          <div class="metric-value" id="safe-dist">—</div>
+          <div class="metric-label">Distance</div>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-box">
+          <div class="metric-value" id="safe-eta">—</div>
+          <div class="metric-label">Est. Walk</div>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-box">
+          <div class="metric-value" id="safe-risk">—</div>
+          <div class="metric-label">Risk Score</div>
+        </div>
+      </div>
+      <div class="risk-track-wrap">
+        <div class="risk-track-label">
+          <span>Safety Score</span>
+          <span id="safe-pct">—</span>
+        </div>
+        <div class="risk-track">
+          <div class="risk-fill safe-fill" id="safe-fill" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="safety-level-row">
+        <span class="safety-pill" id="safe-pill">—</span>
+      </div>
+    </div>
+
+    <!-- Short Route Card -->
+    <div class="r-card route-card short-card" id="r-short">
+      <div class="route-card-header">
+        <div class="route-badge short-badge">
+          <div class="route-color-dot short-dot"></div>
+          Shortest Route
+        </div>
+        <div class="route-tag" id="short-tag"></div>
+      </div>
+      <div class="route-metrics">
+        <div class="metric-box">
+          <div class="metric-value" id="short-dist">—</div>
+          <div class="metric-label">Distance</div>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-box">
+          <div class="metric-value" id="short-eta">—</div>
+          <div class="metric-label">Est. Walk</div>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-box">
+          <div class="metric-value" id="short-risk">—</div>
+          <div class="metric-label">Risk Score</div>
+        </div>
+      </div>
+      <div class="risk-track-wrap">
+        <div class="risk-track-label">
+          <span>Safety Score</span>
+          <span id="short-pct">—</span>
+        </div>
+        <div class="risk-track">
+          <div class="risk-fill short-fill" id="short-fill" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="safety-level-row">
+        <span class="safety-pill" id="short-pill">—</span>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ═══════════════════════════════════════════
+       COORDINATE DISPLAY (bottom-left)
+  ══════════════════════════════════════════════ -->
+  <div id="coords-bar">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    <span id="coords-text">Hover over map…</span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       LOADING OVERLAY
+  ══════════════════════════════════════════════ -->
+  <div id="loading-overlay">
+    <div class="loader-content">
+      <div class="loader-rings">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+        <div class="ring-center">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L4 6v6c0 5.25 3.5 10.17 8 11.5C16.5 22.17 20 17.25 20 12V6L12 2Z" fill="url(#lg2)"/>
+            <path d="M9 12l2 2 4-4" stroke="#080c14" stroke-width="2" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="lg2" x1="4" y1="2" x2="20" y2="24" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00d68f"/><stop offset="1" stop-color="#667eea"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+      <div class="loader-title">Calculating Routes</div>
+      <div class="loader-steps">
+        <div class="l-step" id="ls-1">
+          <div class="l-step-dot active"></div>
+          <span>Mapping road network nodes</span>
+        </div>
+        <div class="l-step" id="ls-2">
+          <div class="l-step-dot"></div>
+          <span>Running A* pathfinding algorithm</span>
+        </div>
+        <div class="l-step" id="ls-3">
+          <div class="l-step-dot"></div>
+          <span>Calculating real-time risk scores</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       TOAST NOTIFICATION
+  ══════════════════════════════════════════════ -->
+  <div id="toast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span id="toast-msg">Error occurred</span>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- App JS -->
+  <script src="app.js"></script>
 </body>
 </html>

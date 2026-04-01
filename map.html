@@ -1,81 +1,872 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Safe Route Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <style>
-        #map {
-            height: 100vh;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafeRoute AI — Intelligent Navigation</title>
+  <meta name="description" content="SafeRoute AI uses machine learning to find the safest walking routes in Tiruchirappalli, comparing safety scores and distances in real-time." />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── CSS Variables ─── */
+    :root {
+      --bg-primary: #080c14;
+      --bg-surface: rgba(13, 19, 33, 0.92);
+      --bg-card: rgba(16, 24, 40, 0.85);
+      --bg-glass: rgba(255, 255, 255, 0.04);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(99, 179, 237, 0.25);
+
+      --accent-safe: #00d68f;
+      --accent-safe-dim: rgba(0, 214, 143, 0.18);
+      --accent-short: #667eea;
+      --accent-short-dim: rgba(102, 126, 234, 0.18);
+      --accent-warn: #f6ad55;
+      --accent-danger: #fc8181;
+      --accent-cyan: #63b3ed;
+
+      --text-primary: #e8eaf0;
+      --text-secondary: rgba(200, 210, 230, 0.65);
+      --text-muted: rgba(160, 175, 200, 0.45);
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border);
+      --shadow-glow-safe: 0 0 20px rgba(0, 214, 143, 0.3);
+      --shadow-glow-short: 0 0 20px rgba(102, 126, 234, 0.3);
+    }
+
+    /* ─── Reset ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); }
+
+    /* ─── Map ─── */
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    .leaflet-container { background: #080c14 !important; }
+
+    /* ─── Top Bar ─── */
+    #topbar {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 10px 20px 10px 14px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+      white-space: nowrap;
+      animation: slideDown 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #topbar .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #00d68f, #667eea);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    #topbar h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      background: linear-gradient(90deg, #e8eaf0, #63b3ed);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #topbar .divider { width: 1px; height: 18px; background: var(--border); }
+    #topbar .status-pill {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #topbar .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent-safe);
+      box-shadow: 0 0 8px var(--accent-safe);
+      animation: pulse 2s infinite;
+    }
+
+    /* ─── Instruction Banner ─── */
+    #instruction-banner {
+      position: absolute;
+      top: 74px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.35s ease;
+      white-space: nowrap;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.4);
+    }
+    #instruction-banner .step-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+      border-radius: 100px;
+      background: var(--accent-cyan);
+      color: #080c14;
+      text-transform: uppercase;
+    }
+    #instruction-banner.step-start .step-badge { background: var(--accent-safe); }
+    #instruction-banner.step-end .step-badge { background: var(--accent-short); }
+    #instruction-banner.step-loading .step-badge { background: var(--accent-warn); }
+
+    /* ─── Side Panel ─── */
+    #side-panel {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      bottom: 16px;
+      z-index: 1000;
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    #side-panel.visible {
+      pointer-events: all;
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .panel-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: var(--shadow-card);
+    }
+    .panel-card .card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .panel-card .card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .panel-card .card-icon {
+      width: 20px; height: 20px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+    }
+    .card-icon.safe { background: var(--accent-safe-dim); }
+    .card-icon.short { background: var(--accent-short-dim); }
+
+    /* Route info rows */
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    /* Safety badge */
+    .safety-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .safety-badge.safe { background: var(--accent-safe-dim); color: var(--accent-safe); border: 1px solid rgba(0,214,143,0.3); }
+    .safety-badge.moderate { background: rgba(246,173,85,0.15); color: var(--accent-warn); border: 1px solid rgba(246,173,85,0.3); }
+    .safety-badge.high-risk { background: rgba(252,129,129,0.15); color: var(--accent-danger); border: 1px solid rgba(252,129,129,0.3); }
+
+    /* Risk bar */
+    .risk-bar-wrap { margin-top: 8px; }
+    .risk-bar-track {
+      width: 100%;
+      height: 4px;
+      background: var(--bg-glass);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .risk-bar-fill {
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .risk-bar-fill.safe { background: linear-gradient(90deg, var(--accent-safe), #00b37a); }
+    .risk-bar-fill.moderate { background: linear-gradient(90deg, var(--accent-warn), #ed8936); }
+    .risk-bar-fill.high-risk { background: linear-gradient(90deg, var(--accent-danger), #e53e3e); }
+    .risk-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Route divider headline */
+    .route-headline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .route-headline::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 14px;
+      border-radius: 3px;
+    }
+    .route-headline.safe::before { background: var(--accent-safe); }
+    .route-headline.short::before { background: var(--accent-short); }
+
+    /* ─── Reset button ─── */
+    #btn-reset {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-glass);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    #btn-reset:hover {
+      background: rgba(252,129,129,0.1);
+      border-color: rgba(252,129,129,0.3);
+      color: var(--accent-danger);
+    }
+
+    /* ─── Loading Overlay ─── */
+    #loading-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      background: rgba(8, 12, 20, 0.7);
+      backdrop-filter: blur(6px);
+    }
+    #loading-overlay.active { display: flex; }
+    .loader-ring {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent-safe);
+      animation: spin 0.9s linear infinite;
+    }
+    .loader-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0.3px;
+    }
+    .loader-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ─── Error toast ─── */
+    #toast {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      z-index: 2000;
+      background: rgba(252,129,129,0.12);
+      border: 1px solid rgba(252,129,129,0.35);
+      border-radius: 100px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent-danger);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      backdrop-filter: blur(12px);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ─── Coordinates panel (bottom-left) ─── */
+    #coords-display {
+      position: absolute;
+      bottom: 24px;
+      left: 16px;
+      z-index: 1000;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: color 0.2s ease;
+      pointer-events: none;
+    }
+
+    /* ─── Leaflet attribution ─── */
+    .leaflet-control-attribution {
+      background: rgba(8,12,20,0.8) !important;
+      color: rgba(160,175,200,0.4) !important;
+      font-size: 10px !important;
+      border-top: 1px solid var(--border) !important;
+    }
+    .leaflet-control-attribution a { color: rgba(99,179,237,0.5) !important; }
+    .leaflet-control-zoom {
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-sm) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+      overflow: hidden;
+      right: 16px !important;
+      bottom: 70px !important;
+    }
+    .leaflet-control-zoom a {
+      background: var(--bg-surface) !important;
+      color: var(--text-secondary) !important;
+      border-bottom: 1px solid var(--border) !important;
+      width: 30px !important;
+      height: 30px !important;
+      line-height: 30px !important;
+      font-size: 16px !important;
+    }
+    .leaflet-control-zoom a:last-child { border-bottom: none !important; }
+    .leaflet-control-zoom a:hover { background: var(--bg-glass) !important; color: var(--text-primary) !important; }
+
+    /* ─── Marker Pulse ─── */
+    .marker-pulse-start,
+    .marker-pulse-end {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      position: relative;
+    }
+    .marker-pulse-start { background: var(--accent-safe); box-shadow: 0 0 0 4px var(--accent-safe-dim); }
+    .marker-pulse-end   { background: var(--accent-short); box-shadow: 0 0 0 4px var(--accent-short-dim); }
+
+    /* ─── Animations ─── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent-safe); }
+      50%       { opacity: 0.5; box-shadow: 0 0 4px var(--accent-safe); }
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateX(-50%) translateY(-16px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ─── Scrollable side panel ─── */
+    #side-panel { overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+    #side-panel::-webkit-scrollbar { width: 4px; }
+    #side-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 680px) {
+      #side-panel {
+        top: auto; bottom: 0; left: 0; right: 0; width: 100%;
+        flex-direction: row; flex-wrap: wrap;
+        max-height: 45vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        padding: 12px;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border);
+        border-right: none; border-bottom: none; border-left: none;
+      }
+      #side-panel .panel-card { flex: 1 1 calc(50% - 6px); min-width: 140px; }
+    }
+  </style>
 </head>
 <body>
 
+<!-- ═══ MAP ═══ -->
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- ═══ TOP BAR ═══ -->
+<div id="topbar">
+  <div class="logo-icon">🛡️</div>
+  <h1>SafeRoute AI</h1>
+  <div class="divider"></div>
+  <div class="status-pill">
+    <span class="status-dot"></span>
+    Tiruchirappalli Network
+  </div>
+</div>
+
+<!-- ═══ INSTRUCTION BANNER ═══ -->
+<div id="instruction-banner" class="step-start">
+  <span class="step-badge" id="step-label">Step 1</span>
+  <span id="step-text">Click anywhere on the map to set your <strong>start point</strong></span>
+</div>
+
+<!-- ═══ COORDINATES DISPLAY ═══ -->
+<div id="coords-display" id="coords-display">Hover over map…</div>
+
+<!-- ═══ SIDE PANEL ═══ -->
+<div id="side-panel">
+
+  <!-- Waypoint Summary -->
+  <div class="panel-card" id="card-waypoints">
+    <div class="card-header">
+      <span class="card-label">Waypoints</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">
+        <span style="color:var(--accent-safe)">●</span> Start
+      </span>
+      <span class="stat-value" id="start-coords" style="font-size:11px;color:var(--text-secondary)">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">
+        <span style="color:var(--accent-short)">●</span> End
+      </span>
+      <span class="stat-value" id="end-coords" style="font-size:11px;color:var(--text-secondary)">—</span>
+    </div>
+  </div>
+
+  <!-- Safe Route -->
+  <div class="panel-card" id="card-safe">
+    <div class="card-header">
+      <div class="card-icon safe">🛡</div>
+      <span class="card-label">Safest Route</span>
+    </div>
+    <div class="route-headline safe">Green Path</div>
+    <div class="stat-row">
+      <span class="stat-label">📏 Distance</span>
+      <span class="stat-value" id="safe-dist">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">⚡ Safety</span>
+      <span id="safe-badge">—</span>
+    </div>
+    <div class="risk-bar-wrap">
+      <div class="risk-bar-track">
+        <div class="risk-bar-fill safe" id="safe-bar" style="width:0%"></div>
+      </div>
+      <div class="risk-bar-label">
+        <span>Safe</span>
+        <span id="safe-risk-pct">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shortest Route -->
+  <div class="panel-card" id="card-short">
+    <div class="card-header">
+      <div class="card-icon short">⚡</div>
+      <span class="card-label">Shortest Route</span>
+    </div>
+    <div class="route-headline short">Purple Path</div>
+    <div class="stat-row">
+      <span class="stat-label">📏 Distance</span>
+      <span class="stat-value" id="short-dist">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">⚡ Safety</span>
+      <span id="short-badge">—</span>
+    </div>
+    <div class="risk-bar-wrap">
+      <div class="risk-bar-track">
+        <div class="risk-bar-fill short" id="short-bar" style="width:0%"></div>
+      </div>
+      <div class="risk-bar-label">
+        <span>Safe</span>
+        <span id="short-risk-pct">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset -->
+  <button id="btn-reset" onclick="resetAll()">
+    🔄 Reset & Plan New Route
+  </button>
+
+</div>
+
+<!-- ═══ LOADING OVERLAY ═══ -->
+<div id="loading-overlay">
+  <div class="loader-ring"></div>
+  <div style="text-align:center;">
+    <div class="loader-text">Calculating optimal routes…</div>
+    <div class="loader-sub">Running A* safety analysis on road network</div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast">
+  <span>⚠️</span>
+  <span id="toast-msg">Error occurred</span>
+</div>
+
 
 <script>
-    var map = L.map('map').setView([11.0, 78.6], 13);
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     CONFIG
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  const API_BASE = "https://saferoutefinder.onrender.com";
+  const CENTER   = [10.7905, 78.7047];
+  const ZOOM     = 14;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     STATE
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  let start    = null;  // [lat, lon]
+  let end      = null;  // [lat, lon]
+  let startMarker = null;
+  let endMarker   = null;
+  let safeLayer   = null;
+  let shortLayer  = null;
 
-    map.on('click', async function(e) {
-        var lat = e.latlng.lat;
-        var lon = e.latlng.lng;
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     MAP INIT
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  const map = L.map('map', {
+    center: CENTER,
+    zoom: ZOOM,
+    zoomControl: false,
+    attributionControl: true,
+  });
 
-        console.log("Clicked:", lat, lon);
+  // Dark tile layer (CartoDB Dark Matter)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    subdomains: 'abcd',
+    maxZoom: 20
+  }).addTo(map);
 
-        // sample inputs (we improve later)
-        const hour = new Date().getHours();
-        const data = {
-           time: hour,
+  // Custom zoom control position
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-           lighting: hour > 18 ? 0.3 : 0.8,
-           crowd: Math.random(),
-
-           crime: (lat + lon) % 1,
-
-           weather: Math.random()
-};
-
-        try {
-            const response = await fetch("http://127.0.0.1:8000/predict-risk", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-
-            const risk = result.risk_score.toFixed(2);
-            const status = result.status;
-
-            // color based on risk
-            let color = "green";
-            if (risk > 0.7) color = "red";
-            else if (risk > 0.4) color = "orange";
-
-            // add marker
-            L.circleMarker([lat, lon], {
-                radius: 8,
-                color: color
-            }).addTo(map)
-              .bindPopup(
-                `<b>Risk:</b> ${risk} <br><b>Status:</b> ${status}`
-              )
-              .openPopup();
-
-        } catch (err) {
-            console.error(err);
-            alert("API error");
-        }
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     CUSTOM MARKERS (DivIcon)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  function makeIcon(type) {
+    const color = type === 'start' ? '#00d68f' : '#667eea';
+    const label = type === 'start' ? 'A' : 'B';
+    const shadow = type === 'start' ? 'rgba(0,214,143,0.5)' : 'rgba(102,126,234,0.5)';
+    return L.divIcon({
+      className: '',
+      iconAnchor: [18, 42],
+      popupAnchor: [0, -42],
+      html: `
+        <div style="
+          position:relative;
+          width:36px; height:44px;
+          filter: drop-shadow(0 4px 12px ${shadow});
+        ">
+          <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 2C10.268 2 4 8.268 4 16C4 26 18 42 18 42C18 42 32 26 32 16C32 8.268 25.732 2 18 2Z"
+                  fill="${color}" opacity="0.15" stroke="${color}" stroke-width="2"/>
+            <circle cx="18" cy="16" r="7" fill="${color}"/>
+            <text x="18" y="20.5" font-family="Inter,sans-serif" font-size="9" font-weight="700"
+                  fill="#080c14" text-anchor="middle">${label}</text>
+          </svg>
+        </div>
+      `
     });
-</script>
+  }
 
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     MOUSE HOVER → COORDINATES
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  const coordsEl = document.getElementById('coords-display');
+  map.on('mousemove', e => {
+    coordsEl.textContent = `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+  });
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     MAP CLICK
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  map.on('click', async (e) => {
+    const { lat, lng } = e.latlng;
+
+    if (!start) {
+      // ── Set START ──
+      start = [lat, lng];
+      if (startMarker) map.removeLayer(startMarker);
+      startMarker = L.marker([lat, lng], { icon: makeIcon('start') })
+        .addTo(map)
+        .bindTooltip('<b style="color:#00d68f">Start Point</b><br>' + fmt(lat, lng), { direction: 'top', offset: [0, -44] });
+
+      document.getElementById('start-coords').textContent = fmt(lat, lng);
+      setInstruction('step-end', 'Step 2', 'Now click to set your <strong>destination</strong>');
+
+    } else if (!end) {
+      // ── Set END ──
+      end = [lat, lng];
+      if (endMarker) map.removeLayer(endMarker);
+      endMarker = L.marker([lat, lng], { icon: makeIcon('end') })
+        .addTo(map)
+        .bindTooltip('<b style="color:#667eea">End Point</b><br>' + fmt(lat, lng), { direction: 'top', offset: [0, -44] });
+
+      document.getElementById('end-coords').textContent = fmt(lat, lng);
+      setInstruction('step-loading', 'Finding…', 'Requesting route from AI backend');
+
+      await fetchRoute();
+    }
+    // After both points set, ignore further clicks until reset
+  });
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     FETCH ROUTE
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  async function fetchRoute() {
+    showLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          start_lat: start[0],
+          start_lon: start[1],
+          end_lat:   end[0],
+          end_lon:   end[1],
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+        throw new Error(err.detail || `Server error ${res.status}`);
+      }
+
+      const data = await res.json();
+      renderRoutes(data);
+
+    } catch (e) {
+      console.error('[SafeRoute]', e);
+      showToast(e.message || 'Could not reach the routing server.');
+      setInstruction('step-start', 'Step 1', 'Click anywhere on the map to set your <strong>start point</strong>');
+      // allow retry — reset end
+      end = null;
+      if (endMarker) { map.removeLayer(endMarker); endMarker = null; }
+      document.getElementById('end-coords').textContent = '—';
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     RENDER ROUTES
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  function renderRoutes(data) {
+    // Clear existing
+    if (safeLayer)  { map.removeLayer(safeLayer);  safeLayer  = null; }
+    if (shortLayer) { map.removeLayer(shortLayer); shortLayer = null; }
+
+    const { safe_route, short_route } = data;
+
+    // Draw short route first (under safe) with dashes
+    if (short_route?.coords?.length) {
+      shortLayer = L.polyline(short_route.coords, {
+        color: '#667eea',
+        weight: 4,
+        opacity: 0.75,
+        dashArray: '8, 6',
+        lineJoin: 'round',
+      }).addTo(map);
+      shortLayer.bindTooltip('⚡ Shortest Route', { sticky: true });
+    }
+
+    // Draw safe route on top
+    if (safe_route?.coords?.length) {
+      safeLayer = L.polyline(safe_route.coords, {
+        color: '#00d68f',
+        weight: 5,
+        opacity: 0.9,
+        lineJoin: 'round',
+      }).addTo(map);
+      safeLayer.bindTooltip('🛡 Safest Route', { sticky: true });
+    }
+
+    // Fit bounds to show both routes
+    const allCoords = [
+      ...(safe_route?.coords  || []),
+      ...(short_route?.coords || []),
+    ];
+    if (allCoords.length) {
+      map.fitBounds(L.latLngBounds(allCoords), { padding: [80, 80] });
+    }
+
+    // Populate side panel
+    fillCard('safe',  safe_route?.summary);
+    fillCard('short', short_route?.summary);
+
+    // Show panel
+    document.getElementById('side-panel').classList.add('visible');
+
+    setInstruction('', 'Done ✓', 'Routes displayed · Press <strong>Reset</strong> to plan again');
+  }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     FILL SIDE-PANEL CARD
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  function fillCard(type, summary) {
+    const distEl   = document.getElementById(`${type}-dist`);
+    const badgeEl  = document.getElementById(`${type}-badge`);
+    const barEl    = document.getElementById(`${type}-bar`);
+    const pctEl    = document.getElementById(`${type}-risk-pct`);
+
+    if (!summary) {
+      distEl.textContent  = 'N/A';
+      badgeEl.innerHTML   = '<span class="safety-badge high-risk">Unreachable</span>';
+      barEl.style.width   = '100%';
+      pctEl.textContent   = '—';
+      return;
+    }
+
+    const { distance_km, risk_percent, safety_level } = summary;
+    distEl.textContent = `${distance_km} km`;
+    pctEl.textContent  = `${risk_percent}% risk`;
+
+    // Risk bar — 0% risk = full green bar (width = 100 - risk)
+    const safeWidth = Math.max(0, 100 - risk_percent);
+    barEl.style.width = safeWidth + '%';
+
+    // Safety badge
+    let cls = 'safe';
+    if (safety_level === 'MODERATE') cls = 'moderate';
+    if (safety_level === 'HIGH RISK') { cls = 'high-risk'; barEl.classList.remove('safe'); barEl.classList.add('high-risk'); }
+
+    const dot = cls === 'safe' ? '✅' : cls === 'moderate' ? '⚠️' : '🔴';
+    badgeEl.innerHTML = `<span class="safety-badge ${cls}">${dot} ${safety_level}</span>`;
+  }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     RESET
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  function resetAll() {
+    start = null; end = null;
+
+    if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
+    if (endMarker)   { map.removeLayer(endMarker);   endMarker   = null; }
+    if (safeLayer)   { map.removeLayer(safeLayer);   safeLayer   = null; }
+    if (shortLayer)  { map.removeLayer(shortLayer);  shortLayer  = null; }
+
+    document.getElementById('start-coords').textContent = '—';
+    document.getElementById('end-coords').textContent   = '—';
+    ['safe','short'].forEach(t => {
+      document.getElementById(`${t}-dist`).textContent = '—';
+      document.getElementById(`${t}-badge`).innerHTML  = '—';
+      document.getElementById(`${t}-bar`).style.width  = '0%';
+      document.getElementById(`${t}-risk-pct`).textContent = '—';
+    });
+
+    document.getElementById('side-panel').classList.remove('visible');
+    setInstruction('step-start', 'Step 1', 'Click anywhere on the map to set your <strong>start point</strong>');
+    map.flyTo(CENTER, ZOOM, { duration: 1.2 });
+  }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     UI HELPERS
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  function setInstruction(cls, label, text) {
+    const banner = document.getElementById('instruction-banner');
+    banner.className = 'instruction-banner ' + (cls || '');
+    // Remove all step-* classes first
+    banner.classList.remove('step-start', 'step-end', 'step-loading');
+    if (cls) banner.classList.add(cls);
+    document.getElementById('step-label').textContent = label;
+    document.getElementById('step-text').innerHTML    = text;
+  }
+
+  function showLoading(on) {
+    document.getElementById('loading-overlay').classList.toggle('active', on);
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
+  }
+
+  function fmt(lat, lng) {
+    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
+</script>
 </body>
 </html>
